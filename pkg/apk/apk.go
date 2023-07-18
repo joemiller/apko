@@ -147,9 +147,9 @@ func AdditionalTags(fsys fs.FS, opts options.Options) ([]string, error) {
 			opts.Log.Warnf("Version for package %s is empty", pkg.Name)
 			continue
 		}
-		if opts.TagSuffix != "" {
-			version += opts.TagSuffix
-		}
+		// if opts.TagSuffix != "" {
+		// 	version += opts.TagSuffix
+		// }
 		opts.Log.Debugf("Found version, images will be tagged with %s", version)
 
 		additionalTags, err := appendTag(opts, fmt.Sprintf("%s%s", opts.PackageVersionTagPrefix, version))
@@ -163,7 +163,26 @@ func AdditionalTags(fsys fs.FS, opts options.Options) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
+			// // additionalTags = compact(append(additionalTags, stemmedTags...))
+			// for _, t := range stemmedTags {
+			// 	additionalTags, err = appendTag(opts, t)
+			// }
+			// additionalTags = append(additionalTags, stemmedTags...)
+			// if opts.TagSuffix != "" && len(stemmedTags) > 0 {
+			// 	for _, t := range additionalTags {
+			// 		// additionalTags[i] = t + opts.TagSuffix
+			// 		additionalTags = append(additionalTags, t+opts.TagSuffix)
+			// 	}
+			// } else {
+			// 	additionalTags = append(additionalTags, stemmedTags...)
+			// }
 			additionalTags = append(additionalTags, stemmedTags...)
+		}
+		// spew.Dump(additionalTags)
+		if opts.TagSuffix != "" {
+			for i, t := range additionalTags {
+				additionalTags[i] = t + opts.TagSuffix
+			}
 		}
 
 		opts.Log.Infof("Returning additional tags %v", additionalTags)
@@ -195,6 +214,7 @@ func replaceTag(img, newTag string) (string, error) {
 
 // TODO: use version parser from https://gitlab.alpinelinux.org/alpine/go/-/tree/master/version
 func getStemmedVersionTags(opts options.Options, origRef string, version string) ([]string, error) {
+	// var err error
 	tags := []string{}
 	re := regexp.MustCompile("[.]+")
 	tmp := []string{}
@@ -207,9 +227,13 @@ func getStemmedVersionTags(opts options.Options, origRef string, version string)
 		}
 		additionalTag, err := replaceTag(origRef,
 			fmt.Sprintf("%s%s", opts.PackageVersionTagPrefix, additionalTag))
+		// fmt.Sprintf("%s%s%s", opts.PackageVersionTagPrefix, additionalTag, opts.TagSuffix))
 		if err != nil {
 			return nil, err
 		}
+		// if opts.TagSuffix != "" {
+		// 	additionalTag += opts.TagSuffix
+		// }
 		tags = append(tags, additionalTag)
 	}
 	sort.Slice(tags, func(i, j int) bool {
@@ -229,7 +253,7 @@ func (a *APK) ListInitFiles() []tar.Header {
 var repoRE = regexp.MustCompile(`^http[s]?://.+\/alpine\/([^\/]+)\/[^\/]+$`)
 
 func parseOptionsFromRepositories(repos []string) []string {
-	var versions = make([]string, 0)
+	versions := make([]string, 0)
 	for _, r := range repos {
 		parts := repoRE.FindStringSubmatch(r)
 		if len(parts) < 2 {
